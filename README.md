@@ -8,7 +8,7 @@ This project monitors Windows registry keys for changes, detects critical and no
 [Installation Instructions](#installation-instructions)\
 [Configuration Settings](#configuration-settings)\
 [Testing the Project](#testing-the-project)\
-[Code Structure](#code-structure)
+[Code Structures](#code-structures)
 
 ## Features
 **Real-Time Monitoring**: Monitors critical registry keys using `RegNotifyChangeKeyValue`. Detected changes are logged and processed immediately.
