@@ -10,10 +10,10 @@ Monitoring::Monitoring(Settings *settings, QObject *parent)
     connect(&m_timer, &QTimer::timeout, this, &Monitoring::checkForChanges);
 
     // Connect rollbackPerformed signal to send alerts when a rollback is performed
-    connect(&m_rollback, &Rollback::rollbackPerformed, this, [this](const QString &keyName) {
-        QString alertMessage = "[CRITICAL] Rollback performed for key: " + keyName;
+    connect(&m_rollback, &Rollback::rollbackPerformed, this, [this](const QString &valueName) {
+        QString alertMessage = "[CRITICAL] Rollback performed for key: " + valueName; // Constructs alert message
         emit criticalChangeDetected(alertMessage);
-        qDebug() << "[MONITORING] Emitting criticalChangeDetected signal with message:" << alertMessage;
+        // qDebug() << "[MONITORING] Emitting criticalChangeDetected signal with message:" << alertMessage;
         m_alert.sendAlert(alertMessage);
     });
 
@@ -25,7 +25,7 @@ Monitoring::Monitoring(Settings *settings, QObject *parent)
     filePath = QDir::cleanPath(filePath);
 
     // Check if the monitoredKeys.json file exists at the constructed path
-    if (QFile::exists(filePath)) {
+    if (QFile::exists(filePath)) { // Checks if the file exists
         QList<RegistryKey*> registryKeys = JsonUtils::readKeysFromJson(filePath);
         m_registryKeys = registryKeys;
         m_registryKeysModel.setRegistryKeys(m_registryKeys);
@@ -35,7 +35,7 @@ Monitoring::Monitoring(Settings *settings, QObject *parent)
         qWarning() << "[MONITORING INIT] monitoredKeys.json file not found at:" << filePath;
     }
 
-    if (m_settings) {
+    if (m_settings) { // Checks if settings object is initialized
         qDebug() << "[MONITORING INIT] Initial email set to:" << m_settings->getEmail();
         qDebug() << "[MONITORING INIT] Initial phone number set to:" << m_settings->getPhoneNumber();
     } else {
@@ -43,9 +43,8 @@ Monitoring::Monitoring(Settings *settings, QObject *parent)
     }
 }
 
-
-void Monitoring::startMonitoring() {
-    if (!m_monitoringActive) {
+void Monitoring::startMonitoring() { // Starts the monitoring process
+    if (!m_monitoringActive) { // Checks if monitoring is inactive
         m_monitoringActive = true;
         m_timer.start(1000);
         qDebug() << "[START MONITORING] Monitoring started.";
@@ -53,30 +52,30 @@ void Monitoring::startMonitoring() {
     }
 }
 
-void Monitoring::stopMonitoring() {
-    if (m_monitoringActive) {
-        m_monitoringActive = false;
-        m_timer.stop();
-        qDebug() << "[STOP MONITORING] Monitoring stopped.";
+void Monitoring::stopMonitoring() { // Stops the monitoring process
+    if (m_monitoringActive) { // Checks if monitoring is active
+        m_monitoringActive = false; // Sets monitoring to inactive
+        m_timer.stop(); // Stops the timer
+        qDebug() << "[STOP MONITORING] Monitoring stopped."; // Logs monitoring stop
         emit statusChanged("Monitoring stopped");
     }
 }
 
-void Monitoring::checkForChanges() {
-    qDebug() << "[CHECK FOR CHANGES] Checking for changes in registry keys.";
-    for (RegistryKey *key : m_registryKeys) {
-        qDebug() << "[DEBUG] Checking key:" << key->name();  // Log the key being checked
+void Monitoring::checkForChanges() { // Checks for changes in registry keys
+    // qDebug() << "[CHECK FOR CHANGES] Checking for changes in registry keys."; // Logs change check
+    for (RegistryKey *key : m_registryKeys) { // Iterates through each registry key
+        // qDebug() << "[DEBUG] Checking key:" << key->name(); // Logs the key being checked
 
-        QString currentValue = key->getCurrentValue();
-        if (currentValue != key->value()) {
+        QString currentValue = key->getCurrentValue(); // Gets the current value of the registry key
+        if (currentValue != key->value()) { // Checks if the value has changed
             qDebug() << "[DEBUG] Change detected for key:" << key->name() << ", Previous value:" << key->value() << ", Current value:" << currentValue;
 
-            if (key->isCritical()) {
+            if (key->isCritical()) { // Checks if the key is marked as critical
+                key->setRollbackCancelled(false);
                 key->setNewValue(currentValue);
-                qDebug() << "[CRITICAL CHANGE DETECTED] Storing new value and emitting signal for key:" << key->name();
                 m_rollback.rollbackIfNeeded(key);
             } else {
-                key->incrementChangeCount();
+                key->incrementChangeCount(); // Increments change count for non-critical key
                 QString thresholdStr = m_settings->getNonCriticalAlertThreshold();
                 int threshold = thresholdStr.isEmpty() ? 0 : thresholdStr.toInt();
 
@@ -84,7 +83,7 @@ void Monitoring::checkForChanges() {
                 qDebug() << "[DEBUG] Current change count for key:" << key->name() << "is" << key->changeCount();
                 qDebug() << "[DEBUG] Non-critical alert threshold is:" << threshold;
 
-                if (key->changeCount() >= threshold && threshold > 0) {
+                if (key->changeCount() >= threshold && threshold > 0) { // Checks if change count meets threshold
                     qDebug() << "[ALERT] Non-critical change threshold reached for key:" << key->name();
 
                     emit keyChanged(key->name(), currentValue);
@@ -94,7 +93,7 @@ void Monitoring::checkForChanges() {
                     QString alertMessage = "[ALERT] Non-critical change threshold reached for " + key->name() + ": new value is " + currentValue;
                     m_alert.sendAlert(alertMessage);
 
-                    key->resetChangeCount();  // Reset after alerting
+                    key->resetChangeCount();
                     qDebug() << "[DEBUG] Change count reset for key:" << key->name();
                 }
                 key->setValue(currentValue);
@@ -103,28 +102,27 @@ void Monitoring::checkForChanges() {
     }
 }
 
-void Monitoring::allowChange(const QString &keyName) {
+void Monitoring::allowChange(const QString &keyName) { // Allows change for a specified key by cancelling rollback
     qDebug() << "[ALLOW CHANGE] Attempting to cancel rollback for key:" << keyName;
-    for (RegistryKey *key : m_registryKeys) {
-        if (key->name() == keyName) {
+    for (RegistryKey *key : m_registryKeys) { // Searches for the specified key
+        if (key->name() == keyName) { // Checks if the key matches
             qDebug() << "[ALLOW CHANGE] Key found, calling cancelRollback for:" << key->name();
             key->setRollbackCancelled(true);
             m_rollback.cancelRollback(key);
-            key->setValue(key->newValue());
+            key->setPreviousValue(key->newValue());
             return;
         }
     }
-    qDebug() << "[ALLOW CHANGE] Key not found:" << keyName;
 }
 
-void Monitoring::setKeyCriticalStatus(const QString &keyName, bool isCritical) {
-    qDebug() << "setKeyCriticalStatus called for" << keyName << "with critical status" << isCritical;
-    for (int i = 0; i < m_registryKeys.size(); ++i) {
-        if (m_registryKeys[i]->name() == keyName) {
+void Monitoring::setKeyCriticalStatus(const QString &keyName, bool isCritical) { // Sets critical status for a specified key
+    // qDebug() << "setKeyCriticalStatus called for" << keyName << "with critical status" << isCritical; // Logs critical status change
+    for (int i = 0; i < m_registryKeys.size(); ++i) { // Loops through registry keys to find the specified key
+        if (m_registryKeys[i]->name() == keyName) { // Checks if key matches
             m_registryKeys[i]->setCritical(isCritical);
             QModelIndex modelIndex = m_registryKeysModel.index(i);
             emit m_registryKeysModel.dataChanged(modelIndex, modelIndex, {RegistryKeyModel::DisplayTextRole});
-            if (isCritical) {
+            if (isCritical) { // Registers the key for rollback if it is critical
                 m_rollback.registerKeyForRollback(m_registryKeys[i]);
             }
             break;
@@ -132,6 +130,6 @@ void Monitoring::setKeyCriticalStatus(const QString &keyName, bool isCritical) {
     }
 }
 
-RegistryKeyModel* Monitoring::registryKeys() {
+RegistryKeyModel* Monitoring::registryKeys() { // Returns the model containing registry keys
     return &m_registryKeysModel;
 }
