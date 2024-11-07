@@ -12,17 +12,17 @@
 
 class Monitoring : public QObject {
     Q_OBJECT
-    Q_PROPERTY(RegistryKeyModel* registryKeys READ registryKeys NOTIFY registryKeysChanged)
+    Q_PROPERTY(RegistryKeyModel* registryKeys READ registryKeys NOTIFY registryKeysChanged) // Exposes registryKeys property to QML
 
 public:
-    explicit Monitoring(Settings *settings, QObject *parent = nullptr);
+    explicit Monitoring(Settings *settings, QObject *parent = nullptr); // Constructor for Monitoring, accepting settings and optional parent
 
     Q_INVOKABLE void startMonitoring();
     Q_INVOKABLE void stopMonitoring();
     Q_INVOKABLE void setKeyCriticalStatus(const QString &keyName, bool isCritical);
     Q_INVOKABLE void allowChange(const QString &keyName);
 
-    RegistryKeyModel* registryKeys();
+    RegistryKeyModel* registryKeys(); // Getter function for the registryKeys property
 
 signals:
     void statusChanged(const QString &status);
@@ -32,15 +32,15 @@ signals:
     void criticalChangeDetected(QString message);
 
 private:
-    void checkForChanges();
+    void checkForChanges(); // Private method that checks for changes in monitored registry keys
 
     QList<RegistryKey*> m_registryKeys;
     RegistryKeyModel m_registryKeysModel;
     Rollback m_rollback;
-    Alert m_alert;  // Added Alert instance
-    Settings *m_settings;  // Added pointer to Settings
+    Alert m_alert;
+    Settings *m_settings;
     QTimer m_timer;
     bool m_monitoringActive;
 };
 
-#endif // MONITORING_H
+#endif
