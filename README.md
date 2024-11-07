@@ -8,7 +8,7 @@ This project monitors Windows registry keys for changes, detects critical and no
 [Installation Instructions](#installation-instructions)\
 [Configuration Settings](#configuration-settings)\
 [Testing the Project](#testing-the-project)\
-[Code Structures](#code-structures)
+[Code Structure](#code-structure)
 
 ## Features
 **Real-Time Monitoring**: Monitors critical registry keys using `RegNotifyChangeKeyValue`. Detected changes are logged and processed immediately.
@@ -35,18 +35,16 @@ This project monitors Windows registry keys for changes, detects critical and no
 
 ### Installation Instructions
 #### Step 1: Install AWS SDK for C++
-- Configure CMake to locate the AWS SDK installed path.
-- Set environment variables for AWS credentiails, or configure the `awsconfig.json` file.
+1. Follow the link to download and install the AWS SDK for C++ from (https://github.com/aws/aws-sdk-cpp).
 
-#### Step 2: Install Visual Studio 2022
+#### Step 2: Install Qt Creator
 - Download Qt 6.5 or later from (https://doc.qt.io/qtcreator/)
-- Include `Qt Quick` componenets for QML
+- Include `Qt Quick` components for QML
 
 #### Step 3: Clone the Repository
-Clone the project repository to your local machine, and `cd` to the cloned project folder:
+Clone the project repository to your local machine
 ```
-git clone https://github.com/Shun1124/BScACS-Major-Project-Prototype.git
-cd BScACS-Major-Project-Prototype
+git clone https://github.com/Shun1124/BScACS-Major-Project.git
 ```
 
 #### Step 4: Set up AWS Services (Optional)
