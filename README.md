@@ -1,6 +1,6 @@
-# COMP 8800 Major Project - Windows Registry Monitor Prototype
+# COMP 8800 Major Project - Windows Registry Monitor
 
-This project monitors Windows registry keys for changes, detects critical and non-critical changes, and sends alerts via email and SMS using AWS services (SES and SNS). It also provides a rollback feature for critical registry changes. The project consists of a C++ backend for monitoring registry changes and an Electron-based frontend for displaying log information and managing user settings.
+This project monitors Windows registry keys for changes, detects critical and non-critical changes, and sends alerts via email and SMS using AWS services (SES and SNS). It also provides a rollback feature for critical registry changes. The project consists of a C++ backend for monitoring registry changes and a Qt Quick-bases frontend for displaying log information and managing user settings.
 
 ## Table of Contents
 [Features](#features)\
