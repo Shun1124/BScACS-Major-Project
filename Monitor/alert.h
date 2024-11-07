@@ -1,4 +1,3 @@
-// alert.h
 #ifndef ALERT_H
 #define ALERT_H
 
@@ -9,11 +8,11 @@
 #include <memory>
 #include "settings.h"
 
-class Alert : public QObject {
+class Alert : public QObject { // Defines the Alert class, inheriting from QObject to use Qt's meta-object system
     Q_OBJECT
 
 public:
-    explicit Alert(Settings *settings, QObject *parent = nullptr);
+    explicit Alert(Settings *settings, QObject *parent = nullptr); // Constructor that initializes the Alert class with settings
 
     // Send alert based on critical changes
     void sendAlert(const QString &message);
@@ -29,4 +28,4 @@ private:
 
 bool loadAwsCredentials(const QString &filePath, Aws::Auth::AWSCredentials &credentials, Aws::Client::ClientConfiguration &config);
 
-#endif // ALERT_H
+#endif
