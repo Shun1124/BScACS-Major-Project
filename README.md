@@ -78,7 +78,7 @@ Create a  `awsconfig.json` file in the `Monitor` folder that contains access key
 Follow these steps to run the project:
 
 ### Step 1: Start the Application
-- Run the application to initialize monitoring. Set your preferences for alerts in teh UI.
+- Run the application to initialize monitoring. Set your preferences for alerts in the UI.
 
 ### Step 2: Alert Preferences(Optional)
 1. Enter your email and phone number in the GUI
