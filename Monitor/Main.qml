@@ -3,7 +3,7 @@ import QtQuick.Controls 2.15
 import QtQml 2.15
 
 // Main Window
-Window {
+Window { // Creates the main application window
     id: window
     width: 800
     height: 600
@@ -24,10 +24,10 @@ Window {
     // Timer declaration for critical changes
     Timer {
         id: removalTimer
-        interval: 30000  // 1 minutes
+        interval: 30000
         repeat: false
         running: false
-        onTriggered: {
+        onTriggered: { // Action when the timer triggers
             if (criticalChanges.length > 0) {
                 criticalChanges = [];
                 criticalChanges.push({ "changeText": "No changes detected yet." });
@@ -38,13 +38,12 @@ Window {
 
     // Function to add a critical change to the list and start the timer
     function addCriticalChange(message) {
-        //console.log("Adding critical change:", message);
         if (typeof message !== 'string') {
             console.error("addCriticalChange expects a string message. Got:", message);
-            return;
+            return; // Exits function if validation fails
         }
 
-        // Remove the placeholder message if it exists
+        // Remove placeholder message if present
         for (let i = 0; i < criticalChanges.length; i++) {
             if (criticalChanges[i].changeText === "No changes detected yet.") {
                 criticalChanges.splice(i, 1);
@@ -52,41 +51,37 @@ Window {
             }
         }
 
-        // Format and update message
-        let formattedMEssage = "[CRITICAL] Rollback performed for key: " + message.split("\\").pop();
+        let formattedMessage = "[CRITICAL] Rollback performed for key: " + message;
         criticalChanges.push({ "changeText": message, "cancelled": false });
-        console.log("Current criticalChanges array:", JSON.stringify(criticalChanges));
-        criticalChangesListView.model = criticalChanges;
+        criticalChangesListView.model = criticalChanges; // Updates the ListView with new changes
 
-        // Start the timer
-        removalTimer.start();
+        removalTimer.start(); // Starts the timer for resetting critical changes
     }
 
     // Connect C++ signal to the QML function
     Connections {
-        target: Monitoring  // Replace with the correct ID or object name if necessary
+        target: Monitoring
         function onCriticalChangeDetected(message) {
-            console.log("onCriticalChangeDetected triggered with message: ", message);
             addCriticalChange(message);
         }
     }
 
     // Container for scrolling content
-    ScrollView {
+    ScrollView { // Main scrollable container for the application content
         anchors.fill: parent
         anchors.centerIn: parent
         contentWidth: parent.width
         padding: 10
         spacing: 0
 
-        // Main column to holder UI components
-        Column {
+        // Main column to hold UI components
+        Column { // Column layout for stacking UI components vertically
             width: parent.width * 0.9
             spacing: 20
             anchors.horizontalCenter: parent.horizontalCenter
 
             // Title text
-            Text {
+            Text { // Text item for displaying the title
                 text: "Windows Registry Monitor"
                 font.pointSize: 24
                 color: "green"
@@ -99,28 +94,25 @@ Window {
                 anchors.horizontalCenter: parent.horizontalCenter
                 spacing: 10
 
-                // Status display text
-                Text {
+                Text { // Text item for displaying monitoring status
                     id: statusText
                     text: "Status: " + monitoringStatus
                     font.pointSize: 16
                     color: "green"
                 }
 
-                // Button to start monitoring
-                Button {
+                Button { // Button to start monitoring
                     text: "Start Monitoring"
-                    onClicked: {
+                    onClicked: { // Action when button is clicked
                         Monitoring.startMonitoring()
                         monitoringStatus = "Monitoring..."
                         addLog("[INFO] Monitoring started.")
                     }
                 }
 
-                // Button to stop monitoring
-                Button {
+                Button { // Button to stop monitoring
                     text: "Stop Monitoring"
-                    onClicked: {
+                    onClicked: { // Action when button is clicked
                         Monitoring.stopMonitoring()
                         monitoringStatus = "Waiting..."
                         addLog("[INFO] Monitoring stopped.")
@@ -128,22 +120,18 @@ Window {
                 }
             }
 
-            // Row to hold columns for logs and critical changes
             Row {
                 id: mainRow
                 width: parent.width * 0.9
                 spacing: 10
                 anchors.horizontalCenter: parent.horizontalCenter
 
-                // First column for logs and critical changes
-                Column {
+                Column { // Column for logs and critical changes
                     id: firstColumn
                     width: (mainRow.width - mainRow.spacing) / 2
                     spacing: 10
 
-
-                    // Containers for the logs
-                    Rectangle {
+                    Rectangle { // Container for log messages
                         width: firstColumn.width
                         height: 150
                         color: "#F0F0F0"
@@ -151,8 +139,7 @@ Window {
                         border.color: "#D3D3D3"
                         border.width: 1
 
-                        // Label for the logs
-                        Text {
+                        Text { // Label for logs section
                             text: "Logs:"
                             font.pointSize: 12
                             color: "black"
@@ -160,30 +147,22 @@ Window {
                             leftPadding: 10
                         }
 
-                        // Column for the log text
-                        Column {
+                        ScrollView { // Scrollable container for the log area
                             anchors.fill: parent
                             anchors.margins: 10
                             anchors.topMargin: 30
 
-                            ScrollView {
-                                anchors.fill: parent
-                                anchors.margins: 10
-
-                                // Text area for displaying log messages
-                                TextArea {
-                                    id: logArea
-                                    width: parent.width
-                                    height: 100
-                                    readOnly: true
-                                    placeholderText: "[INFO] System monitoring initialized."
-                                }
+                            TextArea { // Text area to display log messages
+                                id: logArea
+                                width: parent.width
+                                height: 100
+                                readOnly: true
+                                placeholderText: "[INFO] System monitoring initialized."
                             }
                         }
                     }
 
-                    // Container for the critical changes
-                    Rectangle {
+                    Rectangle { // Container for displaying critical changes
                         width: firstColumn.width
                         color: "#F8F8F8"
                         radius: 5
@@ -191,79 +170,72 @@ Window {
                         border.width: 1
                         height: 150
 
-                        // Column for the critical changes
-                        Column {
+                        Column { // Column for critical changes
                             anchors.fill: parent
                             anchors.margins: 10
 
-                            // Display critical changes
-                            Text {
+                            Text { // Label for critical changes section
                                 text: "Critical Changes:"
                                 font.pointSize: 12
                                 color: "black"
                             }
 
-                            //
-                            ScrollView {
+                            ScrollView { // Scrollable container for critical changes
                                 width: parent.width
                                 height: parent.height
-                                anchors.horizontalCenter: parent.horizontalCenter
 
                                 ListView {
                                     id: criticalChangesListView
                                     width: parent.width
                                     model: criticalChanges.length > 0 ? criticalChanges : [{"changeText": "No changes detected yet."}]
 
-                                    delegate: Rectangle {
+                                    delegate: Rectangle { // Delegate defines how each item in the ListView will be displayed
                                         width: parent.width
                                         height: 40
                                         color: "#F7F7F7"
 
-                                        Row {
+                                        Row { // Row layout for displaying critical change text and button
                                             width: parent.width
                                             spacing: 10
                                             anchors.verticalCenter: parent.verticalCenter
 
-                                            Text {
-                                                text: modelData.changeText.split("\\").pop() || ""  // Display the critical change text
+                                            Text { // Displays the text for the critical change
+                                                text: modelData.changeText.split("\\").pop() || ""
                                                 font.pointSize: 10
                                                 verticalAlignment: Text.AlignVCenter
                                                 elide: Text.ElideRight
                                                 width: parent.width * 0.6
                                             }
 
-                                            // Only show the button if there is an actual change detected
-                                            Button {
+                                            Button { // Button for acknowledging the critical change
                                                 text: "Acknowledge"
                                                 visible: modelData.changeText !== "No changes detected yet."
                                                 width: parent.width * 0.3
-                                                onClicked: {
-                                                    let keyName = modelData.changeText.split("key: ")[1];  // Extract the key name
+                                                onClicked: { // Action when button is clicked
+                                                    let keyName = modelData.changeText.split("key: ")[1]; // Extracts the key name
                                                     if (keyName) {
-                                                        Monitoring.allowChange(keyName.trim());  // Call with the trimmed key name
+                                                        Monitoring.allowChange(keyName.trim());
                                                     }
 
-                                                    // Log and remove acknowledged change
-                                                    addLog("[INFO] Acknowledged change for: " + keyName);
-                                                    for (let i = 0; i < criticalChanges.length; i++) {
+                                                    addLog("[INFO] Acknowledged change for: " + keyName); // Logs acknowledgment of change
+                                                    for (let i = 0; i < criticalChanges.length; i++) { // Loops through criticalChanges to remove acknowledged item
                                                         if (criticalChanges[i].changeText === modelData.changeText) {
                                                             criticalChanges.splice(i, 1);
-                                                            break;
+                                                            break; 
                                                         }
                                                     }
 
-                                                    if (criticalChanges.length === 0) {
+                                                    if (criticalChanges.length === 0) { // If no critical changes left, add default message
                                                         criticalChanges.push({ "changeText": "No changes detected yet." });
                                                     }
 
-                                                    criticalChangesListView.model = criticalChanges;
+                                                    criticalChangesListView.model = criticalChanges; 
                                                 }
                                             }
-
                                         }
                                     }
 
-                                    ScrollBar.vertical: ScrollBar {
+                                    ScrollBar.vertical: ScrollBar { // Vertical scrollbar for ListView
                                         policy: ScrollBar.AsNeeded
                                     }
                                 }
@@ -272,12 +244,12 @@ Window {
                     }
                 }
 
-                Column {
+                Column { // Second column containing monitored registry keys and settings
                     id: secondColumn
-                    width: (mainRow.width - mainRow.spacing) /2
+                    width: (mainRow.width - mainRow.spacing) / 2
                     spacing: 10
 
-                    Rectangle {
+                    Rectangle { // Container for monitored registry keys
                         width: secondColumn.width
                         height: 150
                         color: "#F8F8F8"
@@ -285,52 +257,52 @@ Window {
                         border.color: "#D3D3D3"
                         border.width: 1
 
-                        Column {
+                        Column { // Column layout for registry keys list
                             anchors.fill: parent
                             anchors.margins: 10
 
-                            Text {
+                            Text { // Label for the registry keys section
                                 text: "Monitored Registry Keys:"
                                 font.pointSize: 12
                                 color: "black"
                                 bottomPadding: 10
                             }
 
-                            ScrollView {
+                            ScrollView { // Scrollable container for registry keys list
                                 id: registryScrollView
                                 width: parent.width
                                 height: parent.height - 40
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 clip: true
 
-                                ListView {
+                                ListView { // ListView to display registry keys
                                     id: keyListView
                                     width: parent.width
-                                    model: Monitoring.registryKeys
+                                    model: Monitoring ? Monitoring.registryKeys : []
 
-                                    delegate: Rectangle {
+                                    delegate: Rectangle { // Delegate defining the display of each registry key item
                                         width: keyListView.width
                                         height: 30
                                         color: index % 2 === 0 ? "#F7F7F7" : "#FFFFFF"
 
-                                        Row {
+                                        Row { // Row layout for each registry key item
                                             width: parent.width
                                             spacing: 10
                                             padding: 5
 
-                                            CheckBox {
+                                            CheckBox { // CheckBox to mark registry keys as critical or non-critical
                                                 font.pointSize: 12
                                                 text: model.displayText
                                                 checked: model.isCritical
-                                                onCheckedChanged: {
-                                                    Monitoring.setKeyCriticalStatus(model.name, checked)
-                                                    addLog("[INFO] " + model.name + (checked ? " marked as critical." : " marked as uncritical."))
+                                                onCheckedChanged: { // Action when checkbox state changes
+                                                    Monitoring.setKeyCriticalStatus(model.name, checked);
+                                                    addLog("[INFO] " + model.name + (checked ? " marked as critical." : " marked as uncritical."));
                                                 }
                                             }
                                         }
                                     }
 
-                                    ScrollBar.vertical: ScrollBar {
+                                    ScrollBar.vertical: ScrollBar { // Vertical scrollbar for the registry keys ListView
                                         policy: ScrollBar.AsNeeded
                                     }
                                 }
@@ -338,76 +310,71 @@ Window {
                         }
                     }
 
-                    // Alert Settings Section
-                    Rectangle {
+                    Rectangle { // Container for alert settings
                         width: secondColumn.width
                         color: "#F8F8F8"
                         radius: 5
                         border.color: "#D3D3D3"
                         border.width: 1
                         height: 300
-                        Column {
+
+                        Column { // Column layout for user information and alert settings
                             id: contentItem
                             anchors.fill: parent
                             anchors.margins: 10
                             spacing: 20
                             topPadding: 10
 
-                            Text {
+                            Text { // Label for the user information section
                                 font.pointSize: 12
                                 text: "User Information"
                             }
 
-                            TextField {
+                            TextField { // Text field for entering user email
                                 id: emailField
                                 placeholderText: "Enter your email"
-                                width: parent.width * 1
+                                width: parent.width
                                 height: 30
                                 topPadding: 7
                                 leftPadding: 10
                                 bottomPadding: 5
                             }
 
-                            TextField {
+                            TextField { // Text field for entering user phone number
                                 id: phoneField
                                 placeholderText: "Enter your phone number"
-                                width: parent.width * 1
+                                width: parent.width
                                 height: 30
                                 topPadding: 7
                                 leftPadding: 10
                             }
 
-                            Text {
+                            Text { // Label for the alert settings section
                                 font.pointSize: 12
                                 text: "Alert Settings"
-                            }
 
-                            TextField {
+                            TextField { // Text field for entering threshold for non-critical alerts
                                 id: nonCriticalAlertField
                                 placeholderText: "Enter the number of times before sending alert for non-critical changes."
-                                width: parent.width * 1
+                                width: parent.width
                                 height: 30
                                 topPadding: 7
                                 leftPadding: 10
                             }
 
-                            Button {
+                            Button { // Button to save settings
                                 text: "Save Settings"
                                 width: 150
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                onClicked: {
-                                    // Call the methods in Settings instead of setting properties directly
+                                onClicked: { // Action when button is clicked
                                     Settings.setEmail(emailField.text);
                                     Settings.setPhoneNumber(phoneField.text);
                                     Settings.setNonCriticalAlertThreshold(nonCriticalAlertField.text);
 
                                     addLog("[INFO] Settings saved: Email - " + emailField.text + ", Phone - " + phoneField.text
-                                           + ", Threshold - " + nonCriticalAlertField.text);
-                                    console.log("Settings saved: Email - " + emailField.text + ", Phone - " + phoneField.text
-                                                + ", Threshold - " + nonCriticalAlertField.text);
+                                           + ", Threshold - " + nonCriticalAlertField.text); // Logs settings save confirmation
                                 }
                             }
-
                         }
                     }
                 }
@@ -415,5 +382,3 @@ Window {
         }
     }
 }
-
-
