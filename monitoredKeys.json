@@ -1,0 +1,20 @@
+[
+    {
+        "hive": "HKEY_CURRENT_USER",
+        "keyPath": "Control Panel\\Colors",
+        "valueName": "Background",
+        "isCritical": false
+    },
+    {
+        "hive": "HKEY_CURRENT_USER",
+        "keyPath": "Control Panel\\Mouse",
+        "valueName": "DoubleClickSpeed",
+        "isCritical": false
+    },
+    {
+        "hive": "HKEY_CURRENT_USER",
+        "keyPath": "Control Panel\\Desktop",
+        "valueName": "CursorBlinkRate",
+        "isCritical": false
+    }
+]

@@ -1,0 +1,20 @@
+[
+    {
+        "plistPath": "~/Library/Preferences/com.apple.dock.plist",
+        "key": "tilesize",
+        "valueName": "tilesize",
+        "isCritical": false
+    },
+    {
+        "plistPath": "~/Library/Preferences/com.apple.finder.plist",
+        "key": "ShowHardDrivesOnDesktop",
+        "valueName": "ShowHardDrivesOnDesktop",
+        "isCritical": false
+    },
+    {
+        "plistPath": "~/Library/Preferences/com.apple.systemuiserver.plist",
+        "key": "menuExtras",
+        "valueName": "menuExtras",
+        "isCritical": false
+    }
+]
