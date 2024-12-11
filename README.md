@@ -1,6 +1,6 @@
-# COMP 8800 Major Project - Windows Registry Monitor
+# COMP 8800 Major Project - System Configuration Monitor
 
-This project monitors Windows registry keys for changes, detects critical and non-critical changes, and sends alerts via email and SMS using AWS services (SES and SNS). It also provides a rollback feature for critical registry changes. The project consists of a C++ backend for monitoring registry changes and a Qt Quick-bases frontend for displaying log information and managing user settings.
+This project monitors Windows registry keys and macOS configuration files (.plist) for changes, detects critical and non-critical modifications, and sends alerts via email and SMS using AWS services (SES and SNS). It also provides a rollback feature for critical changes. The project consists of a C++ backend for monitoring configuration changes and a Qt-based frontend for displaying logs and managing settings.
 
 ## Table of Contents
 [Features](#features)\
@@ -11,27 +11,37 @@ This project monitors Windows registry keys for changes, detects critical and no
 [Code Structure](#code-structure)
 
 ## Features
-**Real-Time Monitoring**: Monitors critical registry keys using `RegNotifyChangeKeyValue`. Detected changes are logged and processed immediately.
+**Real-Time Monitoring**: Tracks changes in specified Windows registry keys and macOS .plist files.
 
-**Rollback System**:  Critical changes are reverted within 5 seconds using `RegSetValueEx`, ensuring system integrity is maintained.
+**Rollback System**: Automatically reverts critically changes to maintain system integrity.
 
-**Customizable Alerts**: Alerts are sent to system administrators within 5 seconds of detecting critical changes, ensuring timely intervention.
+**Customizable Alerts**: Sends alerts via email and SMS for critical changes and based on user-defined thresholds for non-critical changes.
+
+**Cross-Platform Support**: Monitors Windows registry keys and macOS configuration files for comprehensive coverage.
+
+**Enhanced Security**: Ensures secure data handling with encrypted configurations and log files.
 
 ## Prerequisites
 ### Tools and Technologies Required
 #### Windows System
-**Operating System**: Windows 10 or later (64-bit).
+**Cross-Platform(Windows/macOS)**:
+**- Development Environment**: Qt Creator
 
-**Development Environment**: Qt Creator
+**- AWS Account** (Optional): For email and SMS alerts through SES and SNS.
 
-**AWS Account** (Optional): For sending email and SMS alerts through SES (Simple Email Service) and SNS (Simple Notification Service). 
+**- CMake**: For building the project.
 
-#### Libraries and Frameworks
-**Qt 6.5 or later**: For the graphical user interface and integration.
+**- AWS SDK for C++**: Used for integrating with AWS services.
 
-**AWS SDK for C++**: Used for sending emails and SMS via AWS SES and SNS.
+#### macOS
+**- Operating System**: macOS 11.0 or later.
 
-**CMake**: For building the project.
+**- Libraries**: macOS file system APIs for .plist file monitoring.
+
+#### Windows
+**- Operating System**: Windows 10 or later (64-bit).
+
+**- Libraries**: Windows Registry APIs for monitoring
 
 ### Installation Instructions
 #### Step 1: Install AWS SDK for C++
@@ -54,7 +64,7 @@ git clone https://github.com/Shun1124/BScACS-Major-Project.git
 - **SNS**: Register and set up SMS service in the AWS console.
 
 #### Step 5: Set Up AWS Credentials
-Create a  `awsconfig.json` file in the `Monitor` folder that contains access key information for a restricted IAM user with full access to SNS and SES. See the report for access key information. If you want to use your own AWS account instead, you can modify the existing `awsconfig.json` with your own credentials.
+Create a  `awsconfig.json` file in the `Monitor` folder that contains access key information for a restricted IAM user with full access to SNS and SES. See the report for access key information. If you want to use your own AWS account instead, you can modify the existing `awsconfig.json` with your own credentials in the `Backend` directory with your own access information.
 ##### Inside the awsconfig.json file:
 ```
 {
@@ -69,6 +79,9 @@ Create a  `awsconfig.json` file in the `Monitor` folder that contains access key
 - Configure with CMake and build the project
 
 ### Configuration Settings
+**JSON Files Configurations**
+**- macOS**: Montiros `.plist` files in `/Library/Preferences`
+**- Windows**: Monitors registy keys, such as `DoubleclickSpeed` and  `CursorBlinkRate`.
 **AWS Configuration**
 - **AWS SES**: Requires a verified email address to send alerts. This can be set up in the AWS Console under the SES service.
 - **AWS SNS**: Will use a phone number for SMS notifications. Ensure the number is registered in AWS SNS.
@@ -78,9 +91,12 @@ Create a  `awsconfig.json` file in the `Monitor` folder that contains access key
 Follow these steps to run the project:
 
 ### Step 1: Start the Application
-- Run the application to initialize monitoring. Set your preferences for alerts in the UI.
+- Run the application and choose your operatings system.
 
-### Step 2: Alert Preferences(Optional)
+### Step 2: Start Monitoring 
+- Click the button to initialize monitoring. Set your preferences for alerts in the UI.
+
+### Step 3: Alert Preferences(Optional)
 1. Enter your email and phone number in the GUI
 2. Specify a threshold for non-critical alerts if needed.
 3. Click **Save Settings** to update your preferences.
@@ -114,30 +130,51 @@ Here are a few test cases to verify the project works as expected:
 2. Modify a non-critical registry key. such as `LimitBlankPasswordUse`, multiple times.
 3. Count the number of modificaitons to confirm if an alert is sent only after reaching the specified threshold.
 
+### Test Case 6: Cross-Platform Monitoring
+1. Modify a .plist file on macOS or a critical registry key on Windows.
+2. Confirm that changes are logged and alerts are triggered.
+
+### Test Case 7: Cross-Platform Monitoring Page
+1. Launch the program
+2. Pick the operating system desired to be monitored.
+3. The main monitoring page will be shown according to the chosen opeating system.
+
 ## Code Structures
 ### Frontend (QML)
-- **main.qml**: The main user interface, displaying logs, alerts, and registry key statuses. Allows users to interact with monitoring settings and alert configurations.
+- **main.qml**: Defines the main QML user interface for the application, likely setting up navigation and the base layout.
+
+- **WindowsDashboard.qml**: Defines the user interface for the Windows dashboard of the application, tailored to display and manage Windows-specific settings and data.
+
+- **Welcome.qml**: Defines the user interface for the welcome page of the application, likely including navigation to other sections.
+
+- **MacOSDashboard.qml**: Defines the user interface for the macOS dashboard of the application, providing layout and functionality specific to macOS.
 
 ### Backend (C++ with Qt)
-- **main.cpp**: Initializes the AWS SDK and application settings, loads the QML UI, and exposes core components to the QML interface.
+- **main.cpp**: Contains the entry point for the application, initializing the program and starting the Qt application runtime.
 
-- **registryKey.h/registryKey.cpp**: Represents each registry key being monitored. Tracks key values, state, critical status, and manages registry interactions.
+- **registryKey.h/registryKey.cpp**: Implements functions for interacting with Windows registry keys, such as reading, writing, or monitoring changes.
 
-- **monitoring.h/monitoring.cpp**: Contains the core monitoring logic. Sets up timers to check for registry changes and triggers alerts or rollbacks based on the key's status.
+- **monitoringBase.h/WindowsMonitoring.cpp/WindowsMonitoring.h/MacOSMonitoring.h/MacOSMonitoring.cpp**: Specifies the registry keys for Windows and plist files for macOS to be monitored, along with their criticality statuses.
 
-- **rollback.h/rollback.cpp**: Implements rollback mechanisms for critical registry keys, ensuring their values revert to the previous state when changes are detected.
+- **WindowsRollback.h/WindowsRollback.cpp/MacOSRollback.cpp/MacOSRollback.h**: Implements the functionality for rolling back changes to registry keys or configurations when necessary, based on critical status or user settings.
 
-- **alert.h/alert.cpp**:Manages alert notifications using AWS SNS for SMS alerts and AWS SES for email alerts. Alerts are sent based on registry key changes and configured thresholds.
+- **alert.h/alert.cpp**:Manages alert notifications using AWS SNS for SMS alerts and AWS SES for email alerts. Alerts are sent based on registry key and .plist changes and configured thresholds.
 
 - **settings.h/settings.cpp**: Manages user-configurable settings, such as alert thresholds and contact information (email and phone number).
 
-- **registryKeyModel.h/registryKeyModel.cpp**: Defines a custom model to represent registry keys in the UI. Custom roles (e.g., `NameRole`, `IsCriticalRole`, `DisplayTextRole`) expose data points for dynamic display and management in the QML interface.
+- **registryKeyModel.h/registryKeyModel.cpp**: Provides the implementation for a model representing registry keys, likely used to manage and display registry data in the application.
 
-- **jsonUtils.h//jsonUtils.cpp**: Contains utility functions to read and parse JSON data. Loads registry key information from `monitoredKeys.json` at startup.
+- **WindowsJsonUtils.h//WindowsJsonUtils.cpp/MacOSJsonUtils.cpp/MacOSJsonUtils.h**: Implements utility functions for handling JSON data, likely for parsing, reading, and writing configurations or monitoring-related data.
 
-- **CMakeLists.txt**: Configures the project's build process. It sets paths for the AWS SDK, defines dependencies for the Qt and AWS SDK components, organizes source files, and registers JSON configuration files. Essential for compiling and linking project components effectively.
+- **CMakeLists.txt**: Configures the build process for the project, specifying dependencies, source files, and setup for Qt and AWS SDK integration
+
+- **plist.cpp/plist.h**: Implements functions for interacting with macOS plist files, such as reading, writing, or parsing them for specific configuration values.
+
+- **plistModel.cpp/plistModel.h**: Provides the implementation for a model representing plist files, likely used to manage and display plist data in the application.
 
 ### JSON Configuration
 - **awsconfig.json**: Stores AWS credentials for SES and SNS integrations.
 
 - **monitoredKeys.json**: Lists registry keys to be monitored, including their paths, values, and critical status indicators.
+
+- **monitoredPlists.json**: Specifies the registry keys for Windows and plist files for macOS to be monitored, along with their criticality statuses
