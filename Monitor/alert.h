@@ -1,33 +1,49 @@
-#ifndef ALERT_H // Preprocessor directive to prevent multiple inclusions of this header file
-#define ALERT_H // Defines ALERT_H if not already defined
+#ifndef WINDOWSMONITORING_H
+#define WINDOWSMONITORING_H 
 
-#include <QObject> // Base class for all Qt objects, providing object-oriented features like signals and slots
-#include <aws/sns/SNSClient.h> // Provides the AWS SNS client for sending SMS messages
-#include <aws/sesv2/SESV2Client.h> // Provides the AWS SESV2 client for sending email messages
-#include <QString> // Qt class for handling strings
-#include <memory> // Provides smart pointers, such as std::unique_ptr, for resource management
-#include "settings.h" // Includes the Settings class for managing configuration settings
+#include <QObject> // Base class for all Qt objects, providing signals and slots
+#include <QList> // Provides QList class for handling lists of objects
+#include <QTimer> // Provides timer functionality
+#include "registryKey.h" // Includes the RegistryKey class for handling registry keys
+#include "registryKeyModel.h" // Includes RegistryKeyModel for managing registry key data in a model format
+#include "WindowsRollback.h" // Includes Rollback class for rollback functionality
+#include "alert.h" // Includes Alert class to send alerts
+#include "settings.h" // Includes Settings class for application settings
+#include "monitoringBase.h"
+#include "Database.h"
 
-class Alert : public QObject { // Defines the Alert class, inheriting from QObject to use Qt's meta-object system
+class WindowsMonitoring : public MonitoringBase { // Defines the Monitoring class, inheriting from QObject
     Q_OBJECT // Macro enabling the Qt meta-object features like signals and slots
+    Q_PROPERTY(RegistryKeyModel* registryKeys READ registryKeys NOTIFY registryKeysChanged) // Exposes registryKeys property to QML
 
 public:
-    explicit Alert(Settings *settings, QObject *parent = nullptr); // Constructor that initializes the Alert class with settings
+    explicit WindowsMonitoring(Settings *settings, QObject *parent = nullptr); // Constructor for Monitoring, accepting settings and optional parent
 
-    // Send alert based on critical changes
-    void sendAlert(const QString &message); // Public method to trigger alert notifications based on message content
+    Q_INVOKABLE void startMonitoring(); // Exposes startMonitoring method to QML for starting monitoring
+    Q_INVOKABLE void stopMonitoring(); // Exposes stopMonitoring method to QML for stopping monitoring
+    Q_INVOKABLE void setKeyCriticalStatus(const QString &keyName, bool isCritical); // Exposes method to change key critical status in QML
+    Q_INVOKABLE void allowChange(const QString &keyName); // Exposes method to allow change for a key, cancelling rollback if necessary
+    RegistryKeyModel* registryKeys(); // Getter function for the registryKeys property
+
+signals:
+    void statusChanged(const QString &status); // Signal emitted when the monitoring status changes
+    void keyChanged(const QString &key, const QString &value); // Signal emitted when a registry key changes
+    void registryKeysChanged(); // Signal emitted when the list of registry keys changes
+    void logMessage(QString message); // Signal emitted to log a message
+    void criticalChangeDetected(QString message); // Signal emitted when a critical change is detected
+    void changeAcknowledged(const QString &keyName);
 
 private:
-    Settings *m_settings; // Pointer to Settings object to access user settings like email and phone number
-    std::unique_ptr<Aws::SNS::SNSClient> m_snsClient; // Smart pointer to AWS SNS client for sending SMS messages
-    std::unique_ptr<Aws::SESV2::SESV2Client> m_sesv2Client; // Smart pointer to AWS SESV2 client for sending email messages
+    void checkForChanges(); // Private method that checks for changes in monitored registry keys
 
-    void sendSmsAlert(const QString &message); // Private method to send SMS alerts via SNS
-    void sendEmailAlert(const QString &message); // Private method to send email alerts via SES
-
-    QString resolveAwsConfigPath();
+    QList<RegistryKey*> m_registryKeys; // List of pointers to monitored registry keys
+    RegistryKeyModel m_registryKeysModel; // Model for handling registry keys in a model format
+    WindowsRollback m_rollback; // Rollback object to manage rollback operations
+    Alert m_alert; // Alert instance for sending alerts
+    Settings *m_settings; // Pointer to Settings for accessing configuration data
+    QTimer m_timer; // Timer for periodic monitoring checks
+    bool m_monitoringActive; // Flag to track if monitoring is currently active
+    Database m_database; // Add a Database
 };
 
-bool loadAwsCredentials(const QString &filePath, Aws::Auth::AWSCredentials &credentials, Aws::Client::ClientConfiguration &config); // Function to load AWS credentials from a file
-
-#endif // ALERT_H // End of multiple inclusion guard for ALERT_H
+#endif // WINDOWSMONITORING_H
