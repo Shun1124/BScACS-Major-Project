@@ -9,8 +9,10 @@
 #include "WindowsRollback.h" // Includes Rollback class for rollback functionality
 #include "alert.h" // Includes Alert class to send alerts
 #include "settings.h" // Includes Settings class for application settings
+#include "monitoringBase.h"
+#include "Database.h"
 
-class WindowsMonitoring : public QObject { // Defines the Monitoring class, inheriting from QObject
+class WindowsMonitoring : public MonitoringBase { // Defines the Monitoring class, inheriting from QObject
     Q_OBJECT // Macro enabling the Qt meta-object features like signals and slots
     Q_PROPERTY(RegistryKeyModel* registryKeys READ registryKeys NOTIFY registryKeysChanged) // Exposes registryKeys property to QML
 
@@ -21,7 +23,6 @@ public:
     Q_INVOKABLE void stopMonitoring(); // Exposes stopMonitoring method to QML for stopping monitoring
     Q_INVOKABLE void setKeyCriticalStatus(const QString &keyName, bool isCritical); // Exposes method to change key critical status in QML
     Q_INVOKABLE void allowChange(const QString &keyName); // Exposes method to allow change for a key, cancelling rollback if necessary
-
     RegistryKeyModel* registryKeys(); // Getter function for the registryKeys property
 
 signals:
@@ -30,6 +31,7 @@ signals:
     void registryKeysChanged(); // Signal emitted when the list of registry keys changes
     void logMessage(QString message); // Signal emitted to log a message
     void criticalChangeDetected(QString message); // Signal emitted when a critical change is detected
+    void changeAcknowledged(const QString &keyName);
 
 private:
     void checkForChanges(); // Private method that checks for changes in monitored registry keys
@@ -41,7 +43,7 @@ private:
     Settings *m_settings; // Pointer to Settings for accessing configuration data
     QTimer m_timer; // Timer for periodic monitoring checks
     bool m_monitoringActive; // Flag to track if monitoring is currently active
-
+    Database m_database; // Add a Database
 };
 
 #endif // WINDOWSMONITORING_H
