@@ -1,6 +1,7 @@
 import QtQuick 2.15 // Imports the QtQuick module for basic QML components
 import QtQuick.Controls 2.15 // Imports the QtQuick.Controls module for UI controls like buttons and sliders
 import QtQml 2.15 // Imports QtQml for interacting with QML elements in JavaScript
+import Monitor.Database 1.0
 
 // Main Window
 Window { // Creates the main application window
@@ -14,6 +15,7 @@ Window { // Creates the main application window
     property string monitoringStatus: "Waiting..." // Initializes the monitoring status property with "Waiting..."
     property var logMessages: [] // Array to store log messages for the application
     property var criticalChanges: [] // Array to store critical changes notifications
+    property var searchResults: []
 
     // Function to add a message to the log
     function addLog(message) { // Function that adds a new log entry and updates the display
@@ -58,12 +60,37 @@ Window { // Creates the main application window
         removalTimer.start(); // Starts the timer for resetting critical changes
     }
 
+
+    // Define the formatSearchResults function
+    function formatSearchResults(results) {
+        let formatted = "";
+        results.forEach((result) => {
+            formatted += "id: " + (result.id || "-") +
+                         " | key_name: " + (result.key_name || "-") +
+                         " | old_value: " + (result.old_value || "-") +
+                         " | new_value: " + (result.new_value || "-") +
+                         " | acknowledged: " + (result.acknowledged ? "true" : "false") +
+                         " | timestamp: " + (result.timestamp || "-") + "\n";
+        });
+        return formatted.trim(); // Remove trailing newline
+    }
+
     // Connect C++ signal to the QML function
     Connections { // Manages connections between C++ signals and QML functions
         target: Monitoring // Links to the Monitoring object defined in C++
         function onCriticalChangeDetected(message) { // Function triggered when C++ emits the critical change signal
             addCriticalChange(message); // Calls addCriticalChange to handle the new message
         }
+    }
+
+    Component.onCompleted: {
+        console.log("Monitoring object:", toString);
+        if (typeof Database === "undefined") {
+            console.error("Database singleton is not available!");
+        } else {
+            console.log("Database singleton loaded:", Database);
+        }
+
     }
 
     // Container for scrolling content
@@ -238,6 +265,71 @@ Window { // Creates the main application window
                                     ScrollBar.vertical: ScrollBar { // Vertical scrollbar for ListView
                                         policy: ScrollBar.AsNeeded // Shows scrollbar only when necessary
                                     }
+                                }
+                            }
+                        }
+                    }
+
+                    // Add search bar above Critical Changes section
+                    Row {
+                        width: parent.width * 0.9
+                        spacing: 10
+                        anchors.horizontalCenter: parent.horizontalCenter
+
+                        TextField {
+                            id: searchDateField
+                            placeholderText: "Enter date (YYYY-MM-DD)"
+                            width: parent.width * 0.4
+                        }
+
+                        TextField {
+                            id: searchKeyNameField
+                            placeholderText: "Enter key name"
+                            width: parent.width * 0.4
+                        }
+
+                        Button {
+                            text: "Search"
+                            onClicked: {
+                                let results = Database.searchChangeHistory(searchDateField.text, searchKeyNameField.text);
+                                console.log("Search results:", results);
+                                searchResults = results; // Assign results to the `searchResults` property
+                            }
+                        }
+                    }
+
+                    // Add search results ListView below Critical Changes
+                    Rectangle {
+                        width: firstColumn.width
+                        height: 150
+                        color: "#F8F8F8"
+                        radius: 5
+                        border.color: "#D3D3D3"
+                        border.width: 1
+
+                        Column {
+                            anchors.fill: parent
+                            anchors.margins: 10 // Proper padding inside the rectangle
+
+                            Text {
+                                text: "Search Results:"
+                                font.pointSize: 12
+                                color: "black"
+                            }
+
+                            ScrollView {
+                                width: parent.width
+                                height: parent.height - 30 // Adjust to ensure the ScrollView stays inside the rectangle
+
+                                TextArea {
+                                    id: searchResultsArea
+                                    width: parent.width
+                                    height: parent.height
+                                    readOnly: true
+                                    font.pointSize: 10
+                                    wrapMode: TextArea.NoWrap
+                                    placeholderText: "No search performed." // Placeholder text
+                                    text: searchResults.length > 0 ? formatSearchResults(searchResults) : "No search performed."
                                 }
                             }
                         }
