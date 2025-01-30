@@ -1,8 +1,30 @@
-#include "WindowsRollback.h" // Includes the Rollback class definition
-#include <QDebug> // Enables logging and debugging output
+#include "WindowsRollback.h"
+#include "Database.h"
+#include <QDebug>
+#include <QDateTime>
 
-WindowsRollback::WindowsRollback(QObject *parent) : QObject(parent) {} // Constructor for Rollback, initializing QObject with an optional parent
+WindowsRollback::WindowsRollback(QObject *parent) : QObject(parent) {}
 
+void WindowsRollback::rollbackIfNeeded(RegistryKey* key) {
+    if (key) {
+        QString previousValue = key->previousValue();
+        QString keyPath = key->keyPath();
+        QString timestamp = QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss");
+
+        if (key->isCritical() && key->getCurrentValue() != previousValue) {
+            qDebug() << "[ROLLBACK] Restoring previous value for key:" << key->name();
+
+            // Update key to previous value
+            key->setNewValue(key->getCurrentValue());
+            restorePreviousValue(key);
+
+            Database db;
+            db.insertOrUpdateConfiguration(key->name(), keyPath, previousValue, true);
+
+            emit rollbackPerformed(key->name());
+        }
+    }
+}
 void WindowsRollback::registerKeyForRollback(RegistryKey* key) { // Registers a critical key for potential rollback
     if (key->isCritical()) { // Checks if the key is marked as critical
         qDebug() << "[ROLLBACK] Key registered for rollback:" << key->name(); // Logs key registration for rollback
@@ -31,36 +53,18 @@ void WindowsRollback::cancelRollback(RegistryKey* key) { // Cancels the rollback
     }
 }
 
-void WindowsRollback::rollbackIfNeeded(RegistryKey* key) { // Checks if a rollback is needed for a specific key
-    if (key) { // Checks if the key pointer is valid
-        if (key->isRollbackCancelled()) { // Checks if rollback has been cancelled
-            qDebug() << "[INFO] Rollback cancelled for key:" << key->name(); // Logs rollback cancellation
-            key->setValue(key->newValue()); // Sets the key to the new value instead
-            key->setRollbackCancelled(false); // Resets the rollback cancellation status for future operations
-        } else if (key->isCritical() && key->getCurrentValue() != key->previousValue()) { // Checks if rollback is needed for a critical key
-            qDebug() << "[ROLLBACK NEEDED] Restoring previous value for key:" << key->valueName(); // Logs the need for a rollback
-            key->setNewValue(key->getCurrentValue()); // Stores the current value before rollback
-            restorePreviousValue(key); // Calls function to restore the previous value
-            emit rollbackPerformed(key->valueName()); // Emits signal indicating a rollback was performed
-            key->setRollbackCancelled(false); // Ensure rollback reset
-        }
-    }
-}
+void WindowsRollback::restorePreviousValue(RegistryKey* key) {
+    QString previousValue = key->previousValue();
 
-void WindowsRollback::restorePreviousValue(RegistryKey* key) { // Restores a key to its previous value
-    QString previousValue = key->previousValue(); // Retrieves the previous value for the key
+    if (key->getCurrentValue() != previousValue) {
+        key->settings()->setValue(key->valueName(), previousValue);
+        key->settings()->sync();
 
-    if (key->getCurrentValue() != previousValue) { // Checks if the current value differs from the previous value
-        key->settings()->setValue(key->valueName(), previousValue); // Sets the registry key to the previous value
-        key->settings()->sync(); // Ensures the change is committed to the registry
-
-        QString confirmedValue = key->getCurrentValue(); // Reads back the confirmed value
-        if (confirmedValue == previousValue) { // Verifies that the registry was updated correctly
-            qDebug() << "[ROLLBACK] Successfully restored previous value for key:" << key->name() << "to" << previousValue; // Logs successful restoration
+        QString confirmedValue = key->getCurrentValue();
+        if (confirmedValue == previousValue) {
+            qDebug() << "[ROLLBACK] Successfully restored key:" << key->name() << "to previous value.";
         } else {
-            qWarning() << "[ROLLBACK FAILURE] Registry did not update correctly for key:" << key->name(); // Warns if the rollback failed
+            qWarning() << "[ROLLBACK] Failed to restore key:" << key->name() << "to previous value.";
         }
-    } else {
-        qDebug() << "[ROLLBACK] No restoration needed; current value matches previous value for key:" << key->name(); // Logs if no restoration was needed
     }
 }
