@@ -12,6 +12,7 @@
 #include <iostream> // Allows for console output
 #include <QDir> // Provides directory manipulation capabilities
 #include <QCoreApplication> // Provides access to application directory and environment
+#include "Database.h"
 
 Alert::Alert(Settings *settings, QObject *parent)
     : QObject(parent), m_settings(settings) { // Constructor for the Alert class initializing settings
@@ -25,10 +26,12 @@ Alert::Alert(Settings *settings, QObject *parent)
         m_sesv2Client = std::make_unique<Aws::SESV2::SESV2Client>(credentials, config); // Initializes SES client with credentials
     } else {
         qWarning("Failed to initialize AWS clients with credentials from JSON"); // Logs failure to initialize clients
+        return;
     }
     // Log initial settings for verification
     qDebug() << "[ALERT INIT] Email:" << m_settings->getEmail(); // Outputs email setting for verification
     qDebug() << "[ALERT INIT] Phone number:" << m_settings->getPhoneNumber(); // Outputs phone number setting for verification
+    m_database = new Database(this);
 }
 
 // Helper method to resolve AWS config path
@@ -36,92 +39,107 @@ QString Alert::resolveAwsConfigPath() {
     #ifdef Q_OS_MAC
         return QDir::cleanPath(QCoreApplication::applicationDirPath() + "/../../../../../awsconfig.json");
     #else
-        return QDir::cleanPath(QCoreApplication::applicationDirPath() + "/../awsconfig.json");
+        return QDir::cleanPath(QCoreApplication::applicationDirPath() + "/../../awsconfig.json");
     #endif
 }
 
 void Alert::sendAlert(const QString &message) {
-    qDebug() << "[ALERT] sendAlert called with message:" << message; // Logs alert message for debugging
-    if (!m_settings) { // Checks if settings are initialized
-        qWarning("Settings not initialized"); // Logs a warning if settings are missing
+    qDebug() << "[ALERT] sendAlert called with message:" << message;
+
+    if (!m_database) {
+        qWarning("[ALERT] Database not initialized.");
         return;
     }
-    if (!m_settings->getEmail().isEmpty()) { // Checks if email is set
-        qDebug() << "[ALERT] Email is set, sending email alert..."; // Logs email sending attempt
-        sendEmailAlert(message); // Sends email alert
-    } else {
-        qDebug() << "[ALERT] Email not set. Skipping email alert."; // Logs skipping of email alert
+
+    QVariantList userSettings = m_database->getAllUserSettings();
+    if (userSettings.isEmpty()) {
+        qWarning("[ALERT] No user settings found in the database. Skipping alerts.");
+        return; // Exit early if no user settings are found
     }
-    if (!m_settings->getPhoneNumber().isEmpty()) { // Checks if phone number is set
-        qDebug() << "[ALERT] Phone number is set, sending SMS alert..."; // Logs SMS sending attempt
-        sendSmsAlert(message); // Sends SMS alert
-    } else {
-        qDebug() << "[ALERT] Phone number not set. Skipping SMS alert."; // Logs skipping of SMS alert
+
+    bool alertSent = false; // Track whether any alert was successfully sent
+
+    for (const auto &setting : userSettings) {
+        QVariantMap user = setting.toMap();
+        QString email = user["email"].toString();
+        QString phone = user["phone"].toString();
+
+        if (!email.isEmpty()) {
+            qDebug() << "[ALERT] Sending email to:" << email;
+            sendEmailAlert(email, message);
+            alertSent = true;
+        } else {
+            qDebug() << "[ALERT] Email not set for user.";
+        }
+
+        if (!phone.isEmpty()) {
+            qDebug() << "[ALERT] Sending SMS to:" << phone;
+            sendSmsAlert(phone, message);
+            alertSent = true;
+        } else {
+            qDebug() << "[ALERT] Phone number not set for user.";
+        }
+    }
+
+    if (!alertSent) {
+        qWarning("[ALERT] No valid email or phone number found. No alerts were sent.");
     }
 }
 
-void Alert::sendSmsAlert(const QString &message) {
-    if (!m_snsClient) { // Checks if SNS client is initialized
-        qWarning("SNS client not initialized"); // Logs warning if SNS client is missing
-        return;
-    }
-    QString phoneNumber = m_settings->getPhoneNumber(); // Gets phone number from settings
-    if (phoneNumber.isEmpty()) { // Checks if phone number is empty
-        qWarning("Phone number is not set. SMS alert cannot be sent."); // Logs inability to send SMS
+void Alert::sendSmsAlert(const QString &phoneNumber, const QString &message) {
+    if (!m_snsClient) {
+        qWarning("[SMS ALERT] SNS client not initialized.");
         return;
     }
 
-    Aws::SNS::Model::PublishRequest request; // Creates SNS publish request for SMS
-    request.SetMessage(message.toStdString()); // Sets the message content for SMS
-    request.SetPhoneNumber(phoneNumber.toStdString()); // Sets the recipient phone number for SMS
+    Aws::SNS::Model::PublishRequest request;
+    request.SetMessage(message.toStdString());
+    request.SetPhoneNumber(phoneNumber.toStdString());
 
-    auto outcome = m_snsClient->Publish(request); // Publishes the SMS request
-    if (!outcome.IsSuccess()) { // Checks if the SMS send was unsuccessful
-        std::cerr << "Failed to send SMS: " << outcome.GetError().GetMessage() << std::endl; // Logs error message
+    auto outcome = m_snsClient->Publish(request);
+    if (!outcome.IsSuccess()) {
+        std::cerr << "[SMS ALERT] Failed to send SMS to " << phoneNumber.toStdString()
+        << ". Error: " << outcome.GetError().GetMessage() << std::endl;
     } else {
-        std::cout << "[INFO] SMS sent successfully!" << std::endl; // Logs successful SMS send
+        std::cout << "[SMS ALERT] SMS sent successfully to " << phoneNumber.toStdString() << std::endl;
     }
 }
 
-void Alert::sendEmailAlert(const QString &message) {
-    if (!m_sesv2Client) { // Checks if SES client is initialized
-        qWarning("SES client not initialized"); // Logs warning if SES client is missing
-        return;
-    }
-    QString email = m_settings->getEmail(); // Gets email from settings
-    if (email.isEmpty()) { // Checks if email is empty
-        qWarning("Email is not set. Email alert cannot be sent."); // Logs inability to send email
+void Alert::sendEmailAlert(const QString &email, const QString &message) {
+    if (!m_sesv2Client) {
+        qWarning("[EMAIL ALERT] SES client not initialized.");
         return;
     }
 
-    Aws::SESV2::Model::SendEmailRequest request; // Creates SES email request
-    Aws::SESV2::Model::Content subjectContent; // Sets subject content of the email
-    subjectContent.SetData("Critical Alert"); // Specifies subject line text
+    Aws::SESV2::Model::SendEmailRequest request;
+    Aws::SESV2::Model::Content subjectContent;
+    subjectContent.SetData("Critical Alert");
 
-    Aws::SESV2::Model::Body emailBody; // Sets email body
-    Aws::SESV2::Model::Content bodyContent; // Creates body content
-    bodyContent.SetData(message.toStdString()); // Sets message content in the body
-    emailBody.SetText(bodyContent); // Adds content to email body
+    Aws::SESV2::Model::Body emailBody;
+    Aws::SESV2::Model::Content bodyContent;
+    bodyContent.SetData(message.toStdString());
+    emailBody.SetText(bodyContent);
 
-    Aws::SESV2::Model::Message emailMessage; // Creates the email message object
-    emailMessage.SetSubject(subjectContent); // Sets email subject
-    emailMessage.SetBody(emailBody); // Sets email body
+    Aws::SESV2::Model::Message emailMessage;
+    emailMessage.SetSubject(subjectContent);
+    emailMessage.SetBody(emailBody);
 
-    Aws::SESV2::Model::EmailContent emailContent; // Creates email content object
-    emailContent.SetSimple(emailMessage); // Sets message as simple content
+    Aws::SESV2::Model::EmailContent emailContent;
+    emailContent.SetSimple(emailMessage);
 
-    request.SetContent(emailContent); // Assigns email content to the request
-    request.SetFromEmailAddress("ingridh2630@gmail.com"); // Sets sender email (replace with verified address)
+    request.SetContent(emailContent);
+    request.SetFromEmailAddress("ingridh2630@gmail.com");
 
-    Aws::SESV2::Model::Destination destination; // Defines email destination
-    destination.AddToAddresses(email.toStdString()); // Adds recipient email
-    request.SetDestination(destination); // Sets the email destination
+    Aws::SESV2::Model::Destination destination;
+    destination.AddToAddresses(email.toStdString());
+    request.SetDestination(destination);
 
-    auto outcome = m_sesv2Client->SendEmail(request); // Sends the email request
-    if (!outcome.IsSuccess()) { // Checks if email send was unsuccessful
-        std::cerr << "Failed to send email: " << outcome.GetError().GetMessage() << std::endl; // Logs error message
+    auto outcome = m_sesv2Client->SendEmail(request);
+    if (!outcome.IsSuccess()) {
+        std::cerr << "[EMAIL ALERT] Failed to send email to " << email.toStdString()
+        << ". Error: " << outcome.GetError().GetMessage() << std::endl;
     } else {
-        std::cout << "[INFO] Email sent successfully!" << std::endl; // Logs successful email send
+        std::cout << "[EMAIL ALERT] Email sent successfully to " << email.toStdString() << std::endl;
     }
 }
 
