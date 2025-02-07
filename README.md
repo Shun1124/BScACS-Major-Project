@@ -1,7 +1,6 @@
-# COMP 8800 Major Project - System Configuration Monitor
+# COMP 8800 and 8900 Major Project - System Configuration Monitor
 
 This project monitors Windows registry keys and macOS configuration files (.plist) for changes, detects critical and non-critical modifications, and sends alerts via email and SMS using AWS services (SES and SNS). It also provides a rollback feature for critical changes. The project consists of a C++ backend for monitoring configuration changes and a Qt-based frontend for displaying logs and managing settings.
-
 ## Table of Contents
 [Features](#features)\
 [Prerequisites](#prerequisites)\
@@ -21,6 +20,12 @@ This project monitors Windows registry keys and macOS configuration files (.plis
 
 **Enhanced Security**: Ensures secure data handling with encrypted configurations and log files.
 
+**MySQL Database Support**: Logs monitored changes, user preferences, and alerts securely in a MySQL database.
+
+**Encryption for Sensitive Data**: Encrypts credentials, logs, and settings using OpenSSL for added security.
+
+**Search Functionality**: Users can search historical change data stored in the database via the application's UI.
+
 ## Prerequisites
 ### Tools and Technologies Required
 #### Windows System
@@ -32,6 +37,10 @@ This project monitors Windows registry keys and macOS configuration files (.plis
 **- CMake**: For building the project.
 
 **- AWS SDK for C++**: Used for integrating with AWS services.
+
+**- MySQL Server & Connector**: Required for logging monitored changes in the database.  
+
+**- OpenSSL**: Required for encryption functionality.
 
 #### macOS
 **- Operating System**: macOS 11.0 or later.
@@ -46,24 +55,29 @@ This project monitors Windows registry keys and macOS configuration files (.plis
 ### Installation Instructions
 #### Step 1: Install AWS SDK for C++
 1. Follow the link to download and install the AWS SDK for C++ from (https://github.com/aws/aws-sdk-cpp).
-
+2. Remember to modify the path of the installed SDK inside the `CMakeLists.txt` file.
 #### Step 2: Install Qt Creator
 - Download Qt 6.5 or later from (https://doc.qt.io/qtcreator/)
 - Include `Qt Quick` components for QML
 
-#### Step 3: Clone the Repository
+#### Step 3: Install MySQL Server and Connector
+1. Install MySQL Server (https://dev.mysql.com/downloads/mysql/).
+2. Install MySQL Connector C++ (https://dev.mysql.com/downloads/connector/cpp/).
+3. Set up a MySQL database for logging changes and user preferences.
+
+#### Step 4: Clone the Repository
 Clone the project repository to your local machine
 ```
 git clone https://github.com/Shun1124/BScACS-Major-Project.git
 ```
 
-#### Step 4: Set up AWS Services (Optional)
+#### Step 5: Set up AWS Services (Optional)
 - Specific testing email and password is provided in the prototype report, therefore, this step is optional.
 - Signup for an AWS account and set up SES and SNS.
 - **SES**: Verify your email address (required by AWS SES to send emails).
 - **SNS**: Register and set up SMS service in the AWS console.
 
-#### Step 5: Set Up AWS Credentials
+#### Step 6: Set Up AWS Credentials
 Create a  `awsconfig.json` file in the `Monitor` folder that contains access key information for a restricted IAM user with full access to SNS and SES. See the report for access key information. If you want to use your own AWS account instead, you can modify the existing `awsconfig.json` with your own credentials in the `Backend` directory with your own access information.
 ##### Inside the awsconfig.json file:
 ```
@@ -74,7 +88,7 @@ Create a  `awsconfig.json` file in the `Monitor` folder that contains access key
 }
 ```
 
-#### Step 6: Build the Project
+#### Step 7: Build the Project
 - Open the project in Qt Creator
 - Configure with CMake and build the project
 
@@ -86,6 +100,7 @@ Create a  `awsconfig.json` file in the `Monitor` folder that contains access key
 - **AWS SES**: Requires a verified email address to send alerts. This can be set up in the AWS Console under the SES service.
 - **AWS SNS**: Will use a phone number for SMS notifications. Ensure the number is registered in AWS SNS.
 - If you plan to use your own AWS Console account, remember to verify your email and phone number first.
+- **MySQL Database**: Stores logs, user preferences, and alerts for historical tracking.
 
 ## Running the Project
 Follow these steps to run the project:
@@ -101,6 +116,9 @@ Follow these steps to run the project:
 2. Specify a threshold for non-critical alerts if needed.
 3. Click **Save Settings** to update your preferences.
 Once saved, alerts will be sent via SMS and email when critical registry key changes occur.
+
+### Step 4: Search Historical Data (Optional)
+1. Use the search bar in the application to filter and view logged changes.
 
 ## Testing the Project
 Here are a few test cases to verify the project works as expected:
@@ -139,6 +157,20 @@ Here are a few test cases to verify the project works as expected:
 2. Pick the operating system desired to be monitored.
 3. The main monitoring page will be shown according to the chosen opeating system.
 
+### Test Case 8: Registry Key Change Detection
+1. Modify the wallpaper on the system.
+2. Confirm the change is logged in the MySQL database.
+
+### Test Case 9: Database Logging
+1. Perform multiple critical and non-critical changes.
+2. Query the database to confirm the data is stored correctly.
+
+### Test Case 10: Encryption Security
+1. Check that sensitive data (e.g., credentials) is encrypted in logs.
+
+### Test Case 11: Search Functionality
+1. Use the application's search feature to query logs for specific changes.
+
 ## Code Structures
 ### Frontend (QML)
 - **main.qml**: Defines the main QML user interface for the application, likely setting up navigation and the base layout.
@@ -171,6 +203,10 @@ Here are a few test cases to verify the project works as expected:
 - **plist.cpp/plist.h**: Implements functions for interacting with macOS plist files, such as reading, writing, or parsing them for specific configuration values.
 
 - **plistModel.cpp/plistModel.h**: Provides the implementation for a model representing plist files, likely used to manage and display plist data in the application.
+
+- **Database.h/Database.cpp**: Handles MySQL database connections and queries.
+
+- **EncryptionUtils.h/EncryptionUtils.cpp**: Implements encryption for sensitive data.
 
 ### JSON Configuration
 - **awsconfig.json**: Stores AWS credentials for SES and SNS integrations.
