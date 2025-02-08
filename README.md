@@ -140,7 +140,7 @@ Here are a few test cases to verify the project works as expected:
 
 ### Test Case 4: Bypass Rollback
 1. Modify a critical registry key (e.g., **DoubleClickSpeed**).
-2. When the rollback is triggered, immediately use the **Acknowledge** option in teh UI to bypass the rollback.
+2. When the rollback is triggered, immediately use the **Acknowledge** option in the UI to bypass the rollback.
 3. Observe the registry key's value in the system after the change.
 
 ### Test Case 5: Settings Threshold for Non-Critical Alerts
@@ -155,7 +155,7 @@ Here are a few test cases to verify the project works as expected:
 ### Test Case 7: Cross-Platform Monitoring Page
 1. Launch the program
 2. Pick the operating system desired to be monitored.
-3. The main monitoring page will be shown according to the chosen opeating system.
+3. The main monitoring page will be shown according to the chosen operating system.
 
 ### Test Case 8: Registry Key Change Detection
 1. Modify the wallpaper on the system.
